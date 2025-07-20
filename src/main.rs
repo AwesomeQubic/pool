@@ -16,7 +16,6 @@ fn main() {
 }
 
 async fn greet() {
-    println!("1");
     spawn(async {
         let path = Path::new("./output");
         let _ = create_dir(path).await;

@@ -89,7 +89,6 @@ impl<R: Send + Sync + 'static, F: Future<Output = R> + Send + Sync + 'static> Fu
             if !self.1 {
                 self.1 = true;
                 if !self.0.set_waker(cx.waker().clone()) {
-                    println!("ERROR");
                     return Poll::Ready(None);
                 }
             }

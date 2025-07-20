@@ -51,7 +51,6 @@ impl<R: Send + Sync + 'static, F: Future<Output = R> + Send + Sync + 'static> Ta
 
             match future_ptr.poll(context) {
                 std::task::Poll::Ready(r) => {
-                    println!("TASK IS DONE!");
                     ref_mut.1 = Some(r);
                     drop(ref_mut);
 
@@ -60,7 +59,6 @@ impl<R: Send + Sync + 'static, F: Future<Output = R> + Send + Sync + 'static> Ta
                     }
 
                     self.state.store(DONE, std::sync::atomic::Ordering::Relaxed);
-                    println!("WAKEY WAKEY");
                     atomic_wait::wake_all(&self.state as *const _);
                     RunResults::Done
                 }
@@ -85,7 +83,6 @@ impl<R: Send + Sync + 'static, F: Future<Output = R> + Send + Sync + 'static> Ta
 
     pub fn collect_output(&self) -> Option<R> {
         let Ok(mut borrowed) = self.finished.try_borrow_mut() else {
-            println!("TASK IS STILL BORROWED");
             return None;
         };
         borrowed.1.take()
@@ -98,13 +95,10 @@ impl<R: Send + Sync + 'static, F: Future<Output = R> + Send + Sync + 'static> Ta
     pub fn join_blocking(&self) {
         loop {
             let load = self.state.load(std::sync::atomic::Ordering::Relaxed);
-            println!("BLCOKING JOIN {load}");
             if load == DONE {
                 return;
             } else {
-                println!("GOING TO SLEEP");
                 atomic_wait::wait(&self.state, load);
-                println!("WOKEN UP BLOCKING");
             }
         }
     }
@@ -348,7 +342,6 @@ fn walker_wake<R: Send + Sync + 'static, F: Future<Output = R> + Send + Sync + '
     content: *const (),
 ) {
     unsafe {
-        println!("WAKING");
         let cast = &*content.cast::<TaskInner<R, F>>();
         if cast
             .state
@@ -361,7 +354,6 @@ fn walker_wake<R: Send + Sync + 'static, F: Future<Output = R> + Send + Sync + '
             .is_ok()
         {
             //We will turn this walker into a global handle and push it into requeue
-            println!("PUSHED NEW TASK");
             GLOBAL_TASK_POOL.push(GeneralizedTask {
                 content: content,
                 table: cast.generic_table,
